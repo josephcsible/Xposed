@@ -229,6 +229,7 @@ static void runtimeStart(AppRuntime& runtime, const char *classname, const Vecto
 
 int main(int argc, char* const argv[])
 {
+    xposed::strings::unhideStrings();
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0) {
         // Older kernels don't understand PR_SET_NO_NEW_PRIVS and return
         // EINVAL. Don't die on such kernels.
@@ -353,10 +354,10 @@ int main(int argc, char* const argv[])
 
     if (zygote) {
         isXposedLoaded = xposed::initialize(true, startSystemServer, NULL, argc, argv);
-        runtimeStart(runtime, isXposedLoaded ? XPOSED_CLASS_DOTS_ZYGOTE : "com.android.internal.os.ZygoteInit", args, zygote);
+        runtimeStart(runtime, isXposedLoaded ? xposed::strings::xposedClassDotsZygote : "com.android.internal.os.ZygoteInit", args, zygote);
     } else if (className) {
         isXposedLoaded = xposed::initialize(false, false, className, argc, argv);
-        runtimeStart(runtime, isXposedLoaded ? XPOSED_CLASS_DOTS_TOOLS : "com.android.internal.os.RuntimeInit", args, zygote);
+        runtimeStart(runtime, isXposedLoaded ? xposed::strings::xposedClassDotsTools : "com.android.internal.os.RuntimeInit", args, zygote);
     } else {
         fprintf(stderr, "Error: no class name or --zygote supplied.\n");
         app_usage();

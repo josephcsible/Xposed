@@ -166,6 +166,7 @@ static void setArgv0(const char *argv0, const char *newArgv0)
 
 int main(int argc, char* const argv[])
 {
+    xposed::strings::unhideStrings();
     if (xposed::handleOptions(argc, argv))
         return 0;
 
@@ -255,14 +256,14 @@ int main(int argc, char* const argv[])
 
     isXposedLoaded = xposed::initialize(zygote, startSystemServer, className, argc, argv);
     if (zygote) {
-        runtime.start(isXposedLoaded ? XPOSED_CLASS_DOTS_ZYGOTE : "com.android.internal.os.ZygoteInit",
+        runtime.start(isXposedLoaded ? xposed::strings::xposedClassDotsZygote : "com.android.internal.os.ZygoteInit",
                 startSystemServer ? "start-system-server" : "");
     } else if (className) {
         // Remainder of args get passed to startup class main()
         runtime.mClassName = className;
         runtime.mArgC = argc - i;
         runtime.mArgV = argv + i;
-        runtime.start(isXposedLoaded ? XPOSED_CLASS_DOTS_TOOLS : "com.android.internal.os.RuntimeInit",
+        runtime.start(isXposedLoaded ? xposed::strings::xposedClassDotsTools : "com.android.internal.os.RuntimeInit",
                 application ? "application" : "tool");
     } else {
         fprintf(stderr, "Error: no class name or --zygote supplied.\n");

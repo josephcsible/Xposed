@@ -379,9 +379,6 @@ char* readFile(const char* path, int* bytesRead) {
 
 namespace binder {
 
-#define XPOSED_BINDER_SYSTEM_SERVICE_NAME "user.xposed.system"
-#define XPOSED_BINDER_APP_SERVICE_NAME    "user.xposed.app"
-
 class IXposedService: public IInterface {
     public:
         DECLARE_META_INTERFACE(XposedService);
@@ -511,7 +508,12 @@ class BpXposedService: public BpInterface<IXposedService> {
         }
 };
 
-IMPLEMENT_META_INTERFACE(XposedService, "de.robv.android.xposed.IXposedService");
+static char* getXposedClassDotsService() {
+    UNHIDE_STRING(strings::xposedClassDotsService);
+    return strings::xposedClassDotsService;
+}
+static char* xposedClassDotsService = getXposedClassDotsService();
+IMPLEMENT_META_INTERFACE(XposedService, xposedClassDotsService);
 
 status_t BnXposedService::onTransact(uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags)  {
     switch (code) {
@@ -786,7 +788,7 @@ status_t XposedService::readFile(const String16& filename16, int32_t offset, int
 ////////////////////////////////////////////////////////////
 
 static void systemService() {
-    xposed::setProcessName("xposed_service_system");
+    xposed::setProcessName(strings::xposed_service_system);
     xposed::dropCapabilities();
 
 #if XPOSED_WITH_SELINUX
@@ -801,12 +803,12 @@ static void systemService() {
     // Initialize the system service
     sp<IServiceManager> sm(defaultServiceManager());
 #if PLATFORM_SDK_VERSION >= 16
-    status_t err = sm->addService(String16(XPOSED_BINDER_SYSTEM_SERVICE_NAME), new binder::XposedService(true), true);
+    status_t err = sm->addService(String16(strings::xposedBinderSystemServiceName), new binder::XposedService(true), true);
 #else
-    status_t err = sm->addService(String16(XPOSED_BINDER_SYSTEM_SERVICE_NAME), new binder::XposedService(true));
+    status_t err = sm->addService(String16(strings::xposedBinderSystemServiceName), new binder::XposedService(true));
 #endif
     if (err != NO_ERROR) {
-        ALOGE("Error %d while adding system service %s", err, XPOSED_BINDER_SYSTEM_SERVICE_NAME);
+        ALOGE("Error %d while adding system service %s", err, strings::xposedBinderSystemServiceName);
         exit(EXIT_FAILURE);
     }
 
@@ -819,7 +821,7 @@ static void systemService() {
 }
 
 static void appService(bool useSingleProcess) {
-    xposed::setProcessName(useSingleProcess ? "xposed_service" : "xposed_service_app");
+    xposed::setProcessName(useSingleProcess ? strings::xposed_service : strings::xposed_service_app);
     xposed::dropCapabilities();
 
 #if XPOSED_WITH_SELINUX
@@ -836,31 +838,31 @@ static void appService(bool useSingleProcess) {
     if (useSingleProcess) {
         // Initialize the system service here as this is the only service process
 #if PLATFORM_SDK_VERSION >= 16
-        err = sm->addService(String16(XPOSED_BINDER_SYSTEM_SERVICE_NAME), new binder::XposedService(true), true);
+        err = sm->addService(String16(strings::xposedBinderSystemServiceName), new binder::XposedService(true), true);
 #else
-        err = sm->addService(String16(XPOSED_BINDER_SYSTEM_SERVICE_NAME), new binder::XposedService(true));
+        err = sm->addService(String16(strings::xposedBinderSystemServiceName), new binder::XposedService(true));
 #endif
         if (err != NO_ERROR) {
-            ALOGE("Error %d while adding system service %s", err, XPOSED_BINDER_SYSTEM_SERVICE_NAME);
+            ALOGE("Error %d while adding system service %s", err, strings::xposedBinderSystemServiceName);
             exit(EXIT_FAILURE);
         }
 
         // The app service can be registered directly
 #if PLATFORM_SDK_VERSION >= 16
-        err = sm->addService(String16(XPOSED_BINDER_APP_SERVICE_NAME), new binder::XposedService(false), true);
+        err = sm->addService(String16(strings::xposedBinderAppServiceName), new binder::XposedService(false), true);
 #else
-        err = sm->addService(String16(XPOSED_BINDER_APP_SERVICE_NAME), new binder::XposedService(false));
+        err = sm->addService(String16(strings::xposedBinderAppServiceName), new binder::XposedService(false));
 #endif
     } else {
         // We have to register the app service by using the already running system service as a proxy
-        sp<IBinder> systemBinder = sm->getService(String16(XPOSED_BINDER_SYSTEM_SERVICE_NAME));
+        sp<IBinder> systemBinder = sm->getService(String16(strings::xposedBinderSystemServiceName));
         sp<binder::IXposedService> xposedSystemService = interface_cast<binder::IXposedService>(systemBinder);
-        err = xposedSystemService->addService(String16(XPOSED_BINDER_APP_SERVICE_NAME), new binder::XposedService(false), true);
+        err = xposedSystemService->addService(String16(strings::xposedBinderAppServiceName), new binder::XposedService(false), true);
     }
 
     // Check result for the app service registration
     if (err != NO_ERROR) {
-        ALOGE("Error %d while adding app service %s", err, XPOSED_BINDER_APP_SERVICE_NAME);
+        ALOGE("Error %d while adding app service %s", err, strings::xposedBinderAppServiceName);
         exit(EXIT_FAILURE);
     }
 
@@ -944,7 +946,7 @@ bool startMembased() {
         ALOGE("Fork for Xposed Zygote service failed: %s", strerror(errno));
         return false;
     } else if (pid == 0) {
-        xposed::setProcessName("xposed_zygote_service");
+        xposed::setProcessName(strings::xposed_zygote_service);
         xposed::dropCapabilities();
         if (setcon(ctx_app) != 0) {
             ALOGE("Could not switch to %s context", ctx_app);

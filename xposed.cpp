@@ -35,7 +35,7 @@ static int sdkVersion = -1;
 static char* argBlockStart;
 static size_t argBlockLength;
 
-const char* xposedVersion = "unknown (invalid " XPOSED_PROP_FILE ")";
+const char* xposedVersion = "unknown (invalid prop file)";
 uint32_t xposedVersionInt = 0;
 
 ////////////////////////////////////////////////////////////
@@ -46,12 +46,12 @@ uint32_t xposedVersionInt = 0;
 bool handleOptions(int argc, char* const argv[]) {
     parseXposedProp();
 
-    if (argc == 2 && strcmp(argv[1], "--xposedversion") == 0) {
+    if (argc == 2 && strcmp(argv[1], strings::xposedversion) == 0) {
         printf("Xposed version: %s\n", xposedVersion);
         return true;
     }
 
-    if (argc == 2 && strcmp(argv[1], "--xposedtestsafemode") == 0) {
+    if (argc == 2 && strcmp(argv[1], strings::xposedtestsafemode) == 0) {
         printf("Testing Xposed safemode trigger\n");
 
         if (detectSafemodeTrigger(shouldSkipSafemodeDelay())) {
@@ -177,9 +177,9 @@ void printRomInfo() {
 
 /** Parses /system/xposed.prop and stores selected values in variables */
 void parseXposedProp() {
-    FILE *fp = fopen(XPOSED_PROP_FILE, "r");
+    FILE *fp = fopen(strings::xposedPropFile, "r");
     if (fp == NULL) {
-        ALOGE("Could not read %s: %s", XPOSED_PROP_FILE, strerror(errno));
+        ALOGE("Could not read %s: %s", strings::xposedPropFile, strerror(errno));
         return;
     }
 
@@ -238,8 +238,8 @@ int getSdkVersion() {
 
 /** Check whether Xposed is disabled by a flag file */
 bool isDisabled() {
-    if (zygote_access(XPOSED_LOAD_BLOCKER, F_OK) == 0) {
-        ALOGE("Found %s, not loading Xposed", XPOSED_LOAD_BLOCKER);
+    if (zygote_access(strings::xposedLoadBlocker, F_OK) == 0) {
+        ALOGE("Found %s, not loading Xposed", strings::xposedLoadBlocker);
         return true;
     }
     return false;
@@ -249,14 +249,14 @@ bool isDisabled() {
 void disableXposed() {
     int fd;
     // FIXME add a "touch" operation to xposed::service::membased
-    fd = open(XPOSED_LOAD_BLOCKER, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    fd = open(strings::xposedLoadBlocker, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd >= 0)
         close(fd);
 }
 
 /** Check whether safemode is disabled. */
 bool isSafemodeDisabled() {
-    if (zygote_access(XPOSED_SAFEMODE_DISABLE, F_OK) == 0)
+    if (zygote_access(strings::xposedSafemodeDisable, F_OK) == 0)
         return true;
     else
         return false;
@@ -264,7 +264,7 @@ bool isSafemodeDisabled() {
 
 /** Check whether the delay for safemode should be skipped. */
 bool shouldSkipSafemodeDelay() {
-    if (zygote_access(XPOSED_SAFEMODE_NODELAY, F_OK) == 0)
+    if (zygote_access(strings::xposedSafemodeNodelay, F_OK) == 0)
         return true;
     else
         return false;
@@ -363,13 +363,13 @@ static bool determineRuntime(const char** xposedLibPath) {
 
         if (strcmp("libdvm.so\n", libname) == 0) {
             ALOGI("Detected Dalvik runtime");
-            *xposedLibPath = XPOSED_LIB_DALVIK;
+            *xposedLibPath = strings::xposedLibDalvik;
             success = true;
             break;
 
         } else if (strcmp("libart.so\n", libname) == 0) {
             ALOGI("Detected ART runtime");
-            *xposedLibPath = XPOSED_LIB_ART;
+            *xposedLibPath = strings::xposedLibArt;
             success = true;
             break;
         }
@@ -391,7 +391,7 @@ void onVmCreated(JNIEnv* env) {
     // Load the suitable libxposed_*.so for it
     void* xposedLibHandle = dlopen(xposedLibPath, RTLD_NOW);
     if (!xposedLibHandle) {
-        ALOGE("Could not load libxposed: %s", dlerror());
+        ALOGE("Could not load lib%s: %s", strings::xposed, dlerror());
         return;
     }
 
@@ -400,9 +400,9 @@ void onVmCreated(JNIEnv* env) {
 
     // Initialize the library
     bool (*xposedInitLib)(XposedShared* shared) = NULL;
-    *(void **) (&xposedInitLib) = dlsym(xposedLibHandle, "xposedInitLib");
+    *(void **) (&xposedInitLib) = dlsym(xposedLibHandle, strings::xposedInitLib);
     if (!xposedInitLib)  {
-        ALOGE("Could not find function xposedInitLib");
+        ALOGE("Could not find function %s", strings::xposedInitLib);
         return;
     }
 

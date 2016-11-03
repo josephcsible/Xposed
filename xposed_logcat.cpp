@@ -38,19 +38,19 @@ static void execLogcat() {
     xposed::dropCapabilities(keep);
 
     // Execute a logcat command that will keep running in the background
-    if (zygote_access(XPOSEDLOG_CONF_ALL, F_OK) == 0) {
+    if (zygote_access(strings::xposedlogConfAll, F_OK) == 0) {
         execl("/system/bin/logcat", "logcat",
             "-v", "time",            // include timestamps in the log
             (char*) 0);
     } else {
         execl("/system/bin/logcat", "logcat",
-            "-v", "time",            // include timestamps in the log
-            "-s",                    // be silent by default, except for the following tags
-            "XposedStartupMarker:D", // marks the beginning of the current log
-            "Xposed:I",              // Xposed framework and default logging
-            "appproc:I",             // app_process
-            "XposedInstaller:I",     // Xposed Installer
-            "art:F",                 // ART crashes
+            "-v", "time",                  // include timestamps in the log
+            "-s",                          // be silent by default, except for the following tags
+            strings::XposedStartupMarkerD, // marks the beginning of the current log
+            strings::XposedI,              // Xposed framework and default logging
+            "appproc:I",                   // app_process
+            strings::XposedInstallerI,     // Xposed Installer
+            "art:F",                       // ART crashes
             (char*) 0);
     }
 
@@ -75,13 +75,13 @@ static inline int dprintf(int fd, const char *format, ...) {
 #endif
 
 static void runDaemon(int pipefd) {
-    xposed::setProcessName("xposed_logcat");
+    xposed::setProcessName(strings::xposed_logcat);
     xposed::dropCapabilities();
 
     umask(0);
-    int logfile = open(XPOSEDLOG, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    int logfile = open(strings::xposedlog, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (logfile < 0) {
-        ALOGE("Could not open %s: %s", XPOSEDLOG, strerror(errno));
+        ALOGE("Could not open %s: %s", strings::xposedlog, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -99,7 +99,7 @@ static void runDaemon(int pipefd) {
             continue; // beginning of <logbuffer type>
 
         if (!foundMarker) {
-            if (strstr(buf, "XposedStartupMarker") != NULL && strstr(buf, marker) != NULL) {
+            if (strstr(buf, strings::XposedStartupMarker) != NULL && strstr(buf, marker) != NULL) {
                 foundMarker = true;
             }
             continue;
@@ -122,7 +122,7 @@ static void runDaemon(int pipefd) {
 
 void printStartupMarker() {
     sprintf(marker, "Current time: %d, PID: %d", (int) time(NULL), getpid());
-    ALOG(LOG_DEBUG, "XposedStartupMarker", marker, NULL);
+    ALOG(LOG_DEBUG, strings::XposedStartupMarker, marker, NULL);
 }
 
 void start() {
@@ -144,9 +144,9 @@ void start() {
     }
 #endif  // XPOSED_WITH_SELINUX
 
-    int err = rename(XPOSEDLOG, XPOSEDLOG_OLD);
+    int err = rename(strings::xposedlog, strings::xposedlogOld);
     if (err < 0 && errno != ENOENT) {
-        ALOGE("%s while renaming log file %s -> %s", strerror(errno), XPOSEDLOG, XPOSEDLOG_OLD);
+        ALOGE("%s while renaming log file %s -> %s", strerror(errno), strings::xposedlog, strings::xposedlogOld);
     }
 
     int pipeFds[2];

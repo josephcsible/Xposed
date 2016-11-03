@@ -19,7 +19,8 @@ LOCAL_SRC_FILES += \
   xposed.cpp \
   xposed_logcat.cpp \
   xposed_service.cpp \
-  xposed_safemode.cpp
+  xposed_safemode.cpp \
+  xposed_strings.cpp
 
 LOCAL_SHARED_LIBRARIES := \
   libcutils \
